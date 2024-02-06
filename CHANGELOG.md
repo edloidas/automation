@@ -5,5 +5,6 @@ The changes described are not real and are used for demonstration purposes only.
 
 ## 0.0.0
 
-- Add initial code (by edloidas).
+- Added test workflow (by Mikita Taukachou).
+- Added initial code (by edloidas).
 - Created repo.

@@ -1,0 +1,28 @@
+{
+  "name": "automation",
+  "version": "0.0.0",
+  "description": "A demo project to show GitHub Actions automation.",
+  "private": true,
+  "main": "index.mjs",
+  "scripts": {
+    "test": "node test.*.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edloidas/automation.git"
+  },
+  "keywords": [
+    "github",
+    "actions",
+    "automation",
+    "workflow",
+    "release",
+    "example"
+  ],
+  "author": "Mikita Taukachou <edloidas@gmail.com> (https://edloidas.io)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/edloidas/automation/issues"
+  },
+  "homepage": "https://github.com/edloidas/automation#readme"
+}

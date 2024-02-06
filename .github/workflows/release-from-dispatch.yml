@@ -1,0 +1,59 @@
+name: Release from Dispatch
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The tag to release"
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract Changelog
+        id: changelog
+        run: |
+          TAG_NAME=${{ github.event.inputs.tag }}
+          READ_SECTION=false
+          CHANGELOG_CONTENT=""
+
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^#+\ +(.*) ]]; then
+              if [[ "${BASH_REMATCH[1]}" == "$TAG_NAME" ]]; then
+                READ_SECTION=true
+              elif [[ "$READ_SECTION" == true ]]; then
+                break
+              fi
+            elif [[ "$READ_SECTION" == true ]]; then
+              CHANGELOG_CONTENT+="$line"$'\n'
+            fi
+          done < "CHANGELOG.md"
+
+          CHANGELOG_CONTENT=$(echo "$CHANGELOG_CONTENT" | awk '/./ {$1=$1;print}')
+
+          echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Echo Changelog
+        run: |
+          echo ${{ github.event.inputs.tag }}
+          CHANGELOG_CONTENT=$(echo "${{ steps.changelog.outputs.changelog_content }}" | sed -e 's/^/    /')
+          echo "$CHANGELOG_CONTENT"
+
+      # - name: Create Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     # token: ${{ secrets.WORKFLOW_TOKEN }}
+      #     tag_name: ${{ github.event.inputs.tag }}
+      #     name: ${{ github.event.inputs.tag }}
+      #     body: '${{ steps.changelog.outputs.changelog_content }}'
+      #     draft: false
+      #     prerelease: false

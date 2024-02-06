@@ -1,0 +1,91 @@
+name: Release from Shared Artifacts
+
+permissions:
+  contents: write
+
+on:
+  workflow_run:
+    workflows: ["Test and Share Artifacts"]
+    types:
+      - completed
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          # Token with actions:read permission is required to download artifacts
+          github-token: ${{ secrets.WORKFLOW_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          # Only tag_name artifact will be downloaded and extracted to /artifacts directory
+          # If name is not specified, all artifacts will be downloaded
+          #   Each artifact will be extracted to a directory with the same name as the artifact under the /artifacts directory
+          #   E.g. /artifacts/tag_name
+          name: tag_name
+          path: artifacts
+        continue-on-error: true
+
+      - name: Display structure of downloaded artifact
+        run: |
+          ls -R
+
+      - name: Read tag name
+        id: tagname
+        run: |
+          if [ -f artifacts/tag_name.txt ]; then
+            echo "'tag_name.txt' artifact exists."
+            TAG_NAME=$(cat artifacts/tag_name.txt)
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "'tag_name.txt' artifact does not exist."
+          fi
+
+      - name: Checkout
+        if: steps.tagname.outputs.tag_name != ''
+        uses: actions/checkout@v4
+
+      - name: Extract Changelog
+        id: changelog
+        if: steps.tagname.outputs.tag_name != ''
+        run: |
+          TAG_NAME=${{ steps.tagname.outputs.tag_name }}
+          READ_SECTION=false
+          CHANGELOG_CONTENT=""
+
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^#+\ +(.*) ]]; then
+              if [[ "${BASH_REMATCH[1]}" == "$TAG_NAME" ]]; then
+                READ_SECTION=true
+              elif [[ "$READ_SECTION" == true ]]; then
+                break
+              fi
+            elif [[ "$READ_SECTION" == true ]]; then
+              CHANGELOG_CONTENT+="$line"$'\n'
+            fi
+          done < "CHANGELOG.md"
+
+          CHANGELOG_CONTENT=$(echo "$CHANGELOG_CONTENT" | awk '/./ {$1=$1;print}')
+
+          echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Echo Changelog
+        if: steps.tagname.outputs.tag_name != ''
+        run: |
+          echo ${{ steps.tagname.outputs.tag_name }}
+          CHANGELOG_CONTENT=$(echo "${{ steps.changelog.outputs.changelog_content }}" | sed -e 's/^/    /')
+          echo "$CHANGELOG_CONTENT"
+
+      # - name: Create Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     # token: ${{ secrets.WORKFLOW_TOKEN }}
+      #     tag_name: ${{ steps.tagname.outputs.tag_name }}
+      #     name: ${{ steps.tagname.outputs.tag_name }}
+      #     body: '${{ steps.changelog.outputs.changelog_content }}'
+      #     draft: false
+      #     prerelease: false

@@ -1,6 +1,6 @@
 {
   "name": "automation",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A demo project to show GitHub Actions automation.",
   "private": true,
   "main": "index.mjs",

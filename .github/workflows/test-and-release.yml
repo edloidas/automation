@@ -32,12 +32,12 @@ jobs:
         run: pnpm install --ignore-scripts
 
       - name: Test
-        run: |
-          pnpm test
+        run: pnpm test
 
   release:
     needs: test
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout
@@ -45,7 +45,6 @@ jobs:
 
       - name: Extract Changelog
         id: changelog
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         run: |
           TAG_NAME=${GITHUB_REF/refs\/tags\//}
           READ_SECTION=false
@@ -70,7 +69,6 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           name: ${{ github.ref_name }}
